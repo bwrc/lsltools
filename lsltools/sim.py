@@ -15,7 +15,7 @@ import random
 import time
 import threading
 import numpy
-from . import pylsl_python as pylsl
+from . import pylsl_python3 as pylsl
 import nitime.algorithms.autoregressive as ar
 import scipy.signal
 import uuid
