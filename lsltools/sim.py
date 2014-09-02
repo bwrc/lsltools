@@ -29,14 +29,14 @@ class RandomData(threading.Thread):
         Generated random values follow gaussian distribution where mean and 
         std values can be specified as arguments.
     """
-    def __init__(self,stream_name="RANDOM",stream_type="RND",ch_count=3,
+    def __init__(self,stream_name="RANDOM",stream_type="RND",nch=3,
                  srate=128,mean=0,std=1,fmt='float32',nsamp=0):
         """ Initializes a data generator 
         
         Args:
             stream_name: <string> name of the stream in LSL (default="RANDOM")
             stream_type: <string> type of the stream in LSL (default="RND")
-            ch_count: <integer> number of channels (default=3)
+            nch: <integer> number of channels (default=3)
             srate: <integer> sampling rate (default=128)
             mean: <float> mean value for the random values (default=0)
             std: <float> standard deviation for the random values (default=1)
@@ -48,7 +48,7 @@ class RandomData(threading.Thread):
         # Stream stuff
         self.stream_name = stream_name
         self.stream_type = stream_type
-        self.ch_count = ch_count
+        self.nch = nch
         self.srate = srate
         self.fmt = fmt
         self.uuid = str(uuid.uuid1())[0:4]
@@ -70,7 +70,7 @@ class RandomData(threading.Thread):
         # Outlet
         self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo(self.stream_name,
                                                           self.stream_type,
-                                                          self.ch_count,
+                                                          self.nch,
                                                           self.srate,
                                                           self.fmt,
                                                           self.uuid))
@@ -103,7 +103,7 @@ class RandomData(threading.Thread):
     def push_sample(self):
         """ Pushes samples to LSL. """
         new_sample = []
-        for n in range(0,self.ch_count):
+        for n in range(0,self.nch):
             new_sample.append(numpy.random.normal(self.data_mean,self.data_std))
         self.outlet.push_sample(new_sample) 
    
@@ -123,14 +123,14 @@ class RandomData(threading.Thread):
  
 
 class LinearData(threading.Thread):
-    def __init__(self,stream_name="LINEAR",stream_type="LIN",ch_count=3,
+    def __init__(self,stream_name="LINEAR",stream_type="LIN",nch=3,
                  srate=128,max_val=1000,fmt='float32',nsamp=0):
         """ Initializes the linear data generator. 
 
         Args:
             stream_name: <string> name of the stream in LSL (default="LINEAR")
             stream_type: <string> type of the stream in LSL (default="LIN")
-            ch_count: <integer> number of channels (default=3)
+            nch: <integer> number of channels (default=3)
             srate: <integer> sampling rate (default=128)
             max_val: <float> maximum value of the data (default=1000)
             fmt: <string> format of the samples (default='float32')
@@ -140,7 +140,7 @@ class LinearData(threading.Thread):
         # Stream stuff
         self.stream_name = stream_name
         self.stream_type = stream_type
-        self.ch_count = ch_count
+        self.nch = nch
         self.srate = srate
         self.fmt = fmt
         self.uuid = str(uuid.uuid1())[0:4]
@@ -160,7 +160,7 @@ class LinearData(threading.Thread):
         # Create the LSL outlet
         self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo(self.stream_name,
                                                           self.stream_type,
-                                                          self.ch_count,
+                                                          self.nch,
                                                           self.srate,
                                                           self.fmt,
                                                           self.uuid))
@@ -185,7 +185,7 @@ class LinearData(threading.Thread):
     def push_sample(self):
         """ Pushes linearly increasing value into the outlet. """
         new_sample = []
-        for n in range(0,self.ch_count):
+        for n in range(0,self.nch):
             new_sample.append(self.value)
         self.outlet.push_sample(new_sample) 
     
