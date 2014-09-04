@@ -17,7 +17,7 @@ recorder = rec.StreamRecorder('/tmp/example_recording.xdf',streams)
 
 # STEP 3: Start recorder and let it run for 30s 
 recorder.start_recording()
-time.sleep(10)
+time.sleep(30)
 recorder.end_recording()
 
 
