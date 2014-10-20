@@ -123,6 +123,79 @@ class Grapher():
         QtGui.QApplication.instance().exec_()
         os._exit(0)
 
+
+class XYGrapher():
+    """ XY-Grapher object for an LSL stream. 
+        
+        Grapher object visualizes 2D LSL streams. 
+        Graph title is derived from StreamInfo. Buffer size of the displayed
+        data and color can be defined when initializing the grapher object.
+        All streams are presumed to contain X and Y coordinates in the first two
+        channels.
+    """
+    def __init__(self,stream,buffer_size,col="w"):
+        """ Initializes the grapher.
+        
+        Args:
+            stream: <pylsl.StreamInfo instance> pointer to a stream
+            buffer_size: <integer> visualization buffer length in samples
+            col: <char> color of the line plot (b,r,g,c,m,y,k and w)
+        """
+
+        self.stream = stream
+        self.inlet = pylsl.StreamInlet(stream)
+
+        self.buffer_size = buffer_size
+
+        self.xvals = np.zeros(self.buffer_size)
+        self.yvals = np.zeros(self.buffer_size)
+
+        self.col = col
+        self.start_graph()
+
+    def update(self):
+        """ Updates the buffer and plot if there are new chunks available. """
+        # pull all available chunks
+        c,t = self.inlet.pull_chunk(timeout=0.0)
+        new_c = []
+        new_t = []
+        while c:
+            new_c+=c
+            new_t+=t
+            c,t=self.inlet.pull_chunk(timeout=0.0)
+        
+        # add samples to buffer
+        if any(new_c):
+            data_x = []
+            data_y = []
+            for smp in new_c:
+                data_x.append(smp[0])
+                data_y.append(smp[1])
+            self.xvals = np.roll(self.xvals,-len(data_x))
+            self.yvals = np.roll(self.yvals,-len(data_y))
+            self.xvals[-len(data_x):]=data_x
+            self.yvals[-len(data_y):]=data_y
+
+        # update graph handles
+        self.handle.setData(self.xvals,self.yvals)
+    
+    def start_graph(self):
+        """ Starts graphing. """
+        # setup plot title and initialize plots+handles
+        title_str = "%s(%s)"%(self.stream.name(),self.stream.type())
+        self.win = pg.GraphicsWindow(title=title_str)
+        self.xyplot = self.win.addPlot(title="XY")
+        self.handle = self.xyplot.plot(pen=self.col)
+
+        # its go time
+        self.timer = pg.QtCore.QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(15) # heuristically derived sleepytime
+
+        # this stuff is for insuring a clean exit (also kills everything, sorry)
+        QtGui.QApplication.instance().exec_()
+        os._exit(0)
+
 if __name__ == "__main__":
    
     if len(sys.argv)<2 or len(sys.argv)>4:
