@@ -629,7 +629,7 @@ class EEGData(threading.Thread):
             ampl: <float> relative amplitude of the oscillation
         """
         # should sanitize inputs here
-        if self.osc.has_key(name):
+        if name in self.osc:
             self.osc[name]=[f_low,f_high,f_bound,ampl]
         else:
             self.osc.update({name:[f_low,f_high,f_bound,ampl]})
