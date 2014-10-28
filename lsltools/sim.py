@@ -640,7 +640,10 @@ class EEGData(threading.Thread):
         Args:
             name: <string> name of the oscillation to be removed
         """
-        del self.osc[name]
+        if name in self.osc:
+            del self.osc[name]
+        else:
+            print("Invalid oscillation name!")
  
     def list_oscillations(self):
         """ Lists all the current oscillations. """

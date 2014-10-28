@@ -2,7 +2,8 @@
 
 # This file is part of the LSLTools package.
 # Copyright 2014
-# Jari Torniainen <jari.torniainen@ttl.fi>, Andreas Henelius <andreas.henelius@ttl.fi>
+#   Jari Torniainen <jari.torniainen@ttl.fi>, 
+#   Andreas Henelius <andreas.henelius@ttl.fi>
 # Finnish Institute of Occupational Health
 # 
 # This code is released under the MIT license
@@ -198,6 +199,7 @@ def load_xdf(filename):
         elif tag==6:    # StreamFooter
             stream_id = read_stream_id(f)
             footer_content = f.read(varlen-6).decode("utf-8")
+            streams[stream_id]['ftr'] = footer_content
         else:           # Unknown tag
             print("Unkown tag encountered! " + str(tag))
             f.read(varlen-2)
