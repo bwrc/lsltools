@@ -25,7 +25,7 @@ class Grapher():
         Graph title is derived from StreamInfo. Buffer size of the displayed
         data and color can be defined when initializing the grapher object.
     """
-    def __init__(self,stream,buffer_size,col="w",chnames=False):
+    def __init__(self,stream,buffer_size,col="w",chnames=False,invert=False):
         """ Initializes the grapher.
         
         Args:
@@ -49,6 +49,10 @@ class Grapher():
                 print("Channel names vs channel count mismatch, skipping")
         else:
             self.chnames = False
+
+        if invert:
+           pg.setConfigOption('background','w') 
+           pg.setConfigOption('foreground','k') 
         self.fill_buffer()
         self.start_graph()
 
