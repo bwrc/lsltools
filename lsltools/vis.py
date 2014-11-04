@@ -25,7 +25,7 @@ class Grapher():
         Graph title is derived from StreamInfo. Buffer size of the displayed
         data and color can be defined when initializing the grapher object.
     """
-    def __init__(self,stream,buffer_size,col="w"):
+    def __init__(self,stream,buffer_size,col="w",chnames=False):
         """ Initializes the grapher.
         
         Args:
@@ -42,6 +42,13 @@ class Grapher():
         self.gbuffer = np.zeros(self.buffer_size*self.channel_count)
         self.gtimes = np.zeros(self.buffer_size)+pylsl.local_clock()
         self.col = col
+        if chnames:
+            if self.channel_count == len(chnames):
+                self.chnames = chnames
+            else:
+                print("Channel names vs channel count mismatch, skipping")
+        else:
+            self.chnames = False
         self.fill_buffer()
         self.start_graph()
 
@@ -108,7 +115,11 @@ class Grapher():
 
         # add each channel as a (vertical) subplot
         for k in range(0,self.channel_count):
-            self.plots.append(self.win.addPlot(title="ch"+str(k)))
+            if self.chnames:
+                self.plots.append(self.win.addPlot(title=self.chnames[k]))
+            else:
+                self.plots.append(self.win.addPlot(title="ch"+str(k)))
+
             self.handles.append(self.plots[k].plot(pen=self.col))
             if k<self.channel_count-1:
                 self.plots[k].showAxis('bottom',show=False)
