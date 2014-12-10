@@ -79,7 +79,7 @@ def read_var_len(f):
         elif var_size==8:
             return struct.unpack('Q',f.read(var_size))[0]
         else:
-            print("erroor")
+            print("Unrecognized chunk size!")
             return -1
 
 def read_tag(f):
@@ -191,6 +191,7 @@ def load_xdf(filename):
             streams[stream_id]['clock_values'].append(
                                                 struct.unpack('d',f.read(8))[0])
         elif tag == 5:
+            f.read(varlen-2)
             pass
         elif tag == 6:    # StreamFooter
             stream_id = read_stream_id(f)
@@ -199,6 +200,7 @@ def load_xdf(filename):
         else:           # Unknown tag
             print("Unkown tag encountered! " + str(tag))
             f.read(varlen-2)
+
 
 def clock_offsets2string(x):
     """ Parses clock-offset vector into a human readable string.
