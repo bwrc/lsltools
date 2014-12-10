@@ -2,10 +2,10 @@
 
 # This file is part of the LSLTools package.
 # Copyright 2014
-#   Jari Torniainen <jari.torniainen@ttl.fi>, 
+#   Jari Torniainen <jari.torniainen@ttl.fi>,
 #   Andreas Henelius <andreas.henelius@ttl.fi>
 # Finnish Institute of Occupational Health
-# 
+#
 # This code is released under the MIT license
 # http://opensource.org/licenses/mit-license.php
 #
@@ -24,11 +24,11 @@ import xml.etree.cElementTree as ET
 # XDF TOOLS
 # -----------------------------------------------------------------------------
 def check_magic_code(f):
-    """ Asserts that there is a magic code at the beginning of file. 
-    
+    """ Asserts that there is a magic code at the beginning of file.
+
     Args:
         f: <_io.TextIOWrapper> file pointer of the xdf-file
-    Returns: 
+    Returns:
         True/False: depedning of if the magic word was found
     """
 
@@ -38,7 +38,7 @@ def check_magic_code(f):
         return True
 
 def convert_to_byte_size(byteStr):
-    """ Converts MATLAB/C types to python types. 
+    """ Converts MATLAB/C types to python types.
 
     Args:
         byteStr: <str> "MATLABish" type definition
@@ -60,7 +60,7 @@ def convert_to_byte_size(byteStr):
     return lookup[byteStr]
 
 def read_var_len(f):
-    """ Reads the chunk length from file. 
+    """ Reads the chunk length from file.
     Args:
         f: <_io.TextIOWrapper> file pointer of the xdf-file
     Returns:
@@ -84,7 +84,7 @@ def read_var_len(f):
 
 def read_tag(f):
     """ Reads chunk tag from file.
-    
+
     Args:
         f: <_io.TextIOWrapper> file pointer of the xdf-file
     Returns:
@@ -93,8 +93,8 @@ def read_tag(f):
     return struct.unpack('H',f.read(2))[0]
 
 def read_stream_id(f):
-    """ Reads stream ID from file. 
-    
+    """ Reads stream ID from file.
+
     Args:
         f: <_io.TextIOWrapper> file pointer of the xdf-file
     Returns:
@@ -103,7 +103,7 @@ def read_stream_id(f):
     return struct.unpack('I',f.read(4))[0]
 
 def parse_stream_header(stream_header_str):
-    """ Parses the xml-formatted stream header string. 
+    """ Parses the xml-formatted stream header string.
 
     Args:
         stream_header_str: <str> xml-formatted header string
@@ -118,85 +118,81 @@ def parse_stream_header(stream_header_str):
     channel_count = int(hdr_xml.find('channel_count').text)
     nominal_srate = int(hdr_xml.find('nominal_srate').text)
     channel_format = convert_to_byte_size(hdr_xml.find('channel_format').text)
-    print ( "\t" + "name=" + hdr_xml.find('name').text + 
-            " ch=" + str(channel_count) +
-            " fmt="+channel_format[0])
-    return stream_name,channel_count,nominal_srate,channel_format
+    print ("\t" + hdr_xml.find('name').text + "(" + str(channel_count) + ")")
+    return stream_name, channel_count, nominal_srate, channel_format
 
 def load_xdf(filename):
-    """ Main function for loading xdf-files. 
+    """ Main function for loading xdf-files.
 
     Args:
         filename: <string> name + path to the xdf-file
     Returns:
         streams: <dict> contents of the xdf-file.
     """
-    f = open(filename,'rb')
+    f = open(filename, 'rb')
     if not(check_magic_code(f)):
         return 0
     reading = True
     # Initialize a structure for the streams
     streams = dict()
-    while True: 
+    while True:
         varlen = read_var_len(f)
-        if varlen==-1:
+        if varlen == -1:
             return streams
         tag = read_tag(f)
-        print("tag = " + str(tag))
-        if tag==1:      # File header
+        if tag == 1:      # File header
             file_header = f.read(varlen-2).decode("utf-8")
-        elif tag==2:    # Stream header
+        elif tag == 2:    # Stream header
             stream_id = read_stream_id(f)
             print("\tstreamID=" + str(stream_id))
             stream_hdr_str = f.read(varlen-6).decode("utf-8")
-            snm,chc,nsr,cf = parse_stream_header(stream_hdr_str)
-            streams.update({stream_id:{ 'name':snm,
-                                        'hdr':stream_hdr_str,
-                                        'channels':chc,
-                                        'srate':nsr,
-                                        'fmt':cf,
-                                        'data':[],
-                                        'timess':[],
-                                        'clock_timess':[],
-                                        'clock_values':[]}})
-        elif tag==3:    # Sample
+            snm, chc, nsr, cf = parse_stream_header(stream_hdr_str)
+            streams.update({stream_id: {'name': snm,
+                                        'hdr': stream_hdr_str,
+                                        'channels': chc,
+                                        'srate': nsr,
+                                        'fmt': cf,
+                                        'data': [],
+                                        'timess': [],
+                                        'clock_timess': [],
+                                        'clock_values': []}})
+        elif tag == 3:    # Sample
             stream_id = read_stream_id(f)
-            is_string = streams[stream_id]['fmt'][0]=="s"
-            print ( "SMP_streamID=" + str(stream_id) + 
-                    " ch=" + str(streams[stream_id]['channels']) + 
-                    " fmt=" + streams[stream_id]['fmt'][0])
+            is_string = streams[stream_id]['fmt'][0] == "s"
             num_samples = read_var_len(f)
             # allocate space for timestamps and values
             if is_string:
                 values = []
             else:
-                values = np.zeros((streams[stream_id]['channels'],num_samples))
-            timess = np.zeros((1,num_samples))
-            for s in range(0,num_samples):
+                values = np.zeros((streams[stream_id]['channels'], num_samples))
+            timess = np.zeros((1, num_samples))
+            for s in range(0, num_samples):
                 has_timestamp = ord(f.read(1))
                 if has_timestamp:
-                    timess[0,s] = struct.unpack('d',f.read(8))[0] # next t.stamp
+                    timess[0, s] = struct.unpack('d', f.read(8))[0]
                 else:
-                    timess[0,s] = -1 # this should come from nominal_srate 
+                    timess[0, s] = -1  # this should come from nominal_srate
                 if is_string:
                     new_string = ""
                     str_n = read_var_len(f)
-                    for c in range(0,str_n): # assuming 1-channel triggers here!
-                        new_string+=f.read(1).decode("utf-8")
+                    for c in range(0, str_n):  # assuming 1-channel triggers!
+                        new_string += f.read(1).decode("utf-8")
                     values.append(new_string)
                 else:
-                    for c in range(0,streams[stream_id]['channels']):
+                    for c in range(0, streams[stream_id]['channels']):
                         values[c,s] = struct.unpack(streams[stream_id]['fmt'][0],
                                         f.read(streams[stream_id]['fmt'][1]))[0]
             streams[stream_id]['data'].append(values)
             streams[stream_id]['timess'].append(timess)
-        elif tag==4:    # ClockOffset
+        elif tag == 4:    # ClockOffset
             stream_id = read_stream_id(f)
             streams[stream_id]['clock_timess'].append(
                                                 struct.unpack('d',f.read(8))[0])
             streams[stream_id]['clock_values'].append(
                                                 struct.unpack('d',f.read(8))[0])
-        elif tag==6:    # StreamFooter
+        elif tag == 5:
+            pass
+        elif tag == 6:    # StreamFooter
             stream_id = read_stream_id(f)
             footer_content = f.read(varlen-6).decode("utf-8")
             streams[stream_id]['ftr'] = footer_content
@@ -230,16 +226,16 @@ def stream2csv(filename,x):
     hdr = x['hdr']
     if x['clock_timess']:
             hdr+=clock_offsets2string(x)
- 
+
     np.savetxt(filename,np.concatenate([times,data],axis=1),
                 delimiter=',',
                 header=hdr)
 
 def everything2csv(prefix,x):
-    """ Write all streams in dict x into separate csv-files. 
+    """ Write all streams in dict x into separate csv-files.
 
     Args:
-        prefix: <str> prefix for all files (each file is named as prefix + 
+        prefix: <str> prefix for all files (each file is named as prefix +
                       the name of the stream)
         x: <dict> contents of the xdf file
     """
@@ -253,8 +249,8 @@ class StreamWriter(threading.Thread):
     """ Object for writing a single stream into a specified file. """
 
     def __init__(self,f,lock,stream,stream_id):
-        """ Initializes the streamWriter object. 
-    
+        """ Initializes the streamWriter object.
+
         Args:
             f: <_io.TextIOWrapper> file pointer to the output file
             lock: <threading.Lock> lock for thread-safe file writing
@@ -269,7 +265,7 @@ class StreamWriter(threading.Thread):
         self.lock = lock
         # Prepare stream and inlet
         self.inlet = pylsl.StreamInlet(stream)
-        self.stream_id = stream_id    
+        self.stream_id = stream_id
         self.is_recording = False
 
         self.byte_table = {
@@ -284,15 +280,15 @@ class StreamWriter(threading.Thread):
                             'float32':  ['f',4],
                             'double64': ['d',8],
                             'string':   ['s',3]}
-         
+
         chunk_fmt = pylsl.fmt2string[self.stream.channel_format()]
 
         # Need to know if we are recording strings or numerics
         if chunk_fmt is 'string':
             self.is_strings = True
-        else: 
+        else:
             self.is_strings = False
-        
+
         # Assign some byte-sizes for easy access
         chunk_pack_info = self.byte_table[chunk_fmt]
         self.sample_pack_key = chunk_pack_info[0]
@@ -301,7 +297,7 @@ class StreamWriter(threading.Thread):
         self.timess_byte_size = 8
 
         self.boundary_uuid = uuid.uuid4()
-        
+
         # Initialize timing variables for pulling, clock offsets and boundaries.
         self.last_ofs = time.time()
         self.last_uuid = time.time()
@@ -318,11 +314,11 @@ class StreamWriter(threading.Thread):
         # the internal buffer of a stream could potentially be a lot larger.
         # What we do instead is pull chunks at full-buffers.
         # If sampling rate is irregular we assume 500 Hz for pull
-        
+
         self.srate = self.stream.nominal_srate()
         if self.srate:
             self.pull_interval = 1024.0/self.srate
-        else:    
+        else:
             self.pull_interval = 1024.0/500.0
 
         # Min pull interval = 4s
@@ -351,9 +347,9 @@ class StreamWriter(threading.Thread):
             return 4,'I'
         else:
             return 8,'Q'
-    
+
     def calculate_chunksize_string(self,chunk,timess):
-        """ Calculates the size of string contents of a chunk and the 
+        """ Calculates the size of string contents of a chunk and the
             corresponding timestamps.
 
         Args:
@@ -362,7 +358,7 @@ class StreamWriter(threading.Thread):
         Returns:
             num_of_samples: <int> number of samples in chunk
             chunk_size: <int> chunk size in bytes
-        """ 
+        """
         num_of_samples = len(chunk)
         nsb,nsbkey = self.get_num_of_bytes(num_of_samples)
         chunk_size = 2+4+1+nsb # tag,stream_id,nsb,nsbvalue
@@ -382,9 +378,9 @@ class StreamWriter(threading.Thread):
         return num_of_samples,chunk_size
 
     def calculate_chunksize_numeric(self,chunk,timess):
-        """ Calculate and return the number of samples in a numeric chunk and 
+        """ Calculate and return the number of samples in a numeric chunk and
             chunk size in bytes.
-        
+
         Args:
             chunk: <list> chunk contents
             timess: <list> vector of timestamps
@@ -407,7 +403,7 @@ class StreamWriter(threading.Thread):
 
     def write_chunk_length(self,content_length):
         """ Calculates how many bytes are needed to encode content_length
-            then writes both the size_in_bytes and content length to 
+            then writes both the size_in_bytes and content length to
             the file.
 
         Args:
@@ -423,10 +419,10 @@ class StreamWriter(threading.Thread):
         else:
             self.f.write(struct.pack('B',8))
             self.f.write(struct.pack('Q',content_length))
-    
+
     def write_tag(self,tag):
-        """ Writes a specified tag to file. 
-        
+        """ Writes a specified tag to file.
+
         Args:
             tag: <int> chunk id tag
         """
@@ -446,8 +442,8 @@ class StreamWriter(threading.Thread):
         self.f.write(header_str)
 
     def write_samples_string(self,chunk,timess):
-        """ Writes a sample chunk of strings into the output file. 
-        
+        """ Writes a sample chunk of strings into the output file.
+
         Args:
             chunk: <list> list of samples
             timess: <list> vector of timestamps
@@ -456,7 +452,7 @@ class StreamWriter(threading.Thread):
         num_of_samples,chunk_size=self.calculate_chunksize_string(chunk,timess)
         self.write_chunk_length(chunk_size)
         self.write_tag(3)
-        self.write_stream_id()    
+        self.write_stream_id()
         self.write_chunk_length(num_of_samples)
         if timess:
             for s,t in zip(chunk,timess):
@@ -474,7 +470,7 @@ class StreamWriter(threading.Thread):
                     self.f.write(v.encode("utf-8"))
 
     def write_samples_numeric(self,chunk,timess):
-        """ Writes a sample chunk of numeric data into the output file. 
+        """ Writes a sample chunk of numeric data into the output file.
 
         Args:
             chunk: <list> list of samples
@@ -484,11 +480,11 @@ class StreamWriter(threading.Thread):
         self.write_chunk_length(chunk_size)
         self.write_tag(3)
         self.write_stream_id()
-        # Also need special case for strings 
+        # Also need special case for strings
         self.write_chunk_length(num_of_samples)
         if timess:
             for s,t in zip(chunk,timess):
-                self.f.write(struct.pack('B',8)) 
+                self.f.write(struct.pack('B',8))
                 self.f.write(struct.pack(self.timess_pack_key,t))
                 self.f.write(struct.pack(
                          self.sample_pack_key*self.stream.channel_count(),*s))
@@ -534,7 +530,7 @@ class StreamWriter(threading.Thread):
         # I think this causes segfaults by messing up some threading locks in
         # lslboost
         #self.inlet.__del__()
-    
+
     def stop(self):
         """ Terminate the recording. Pull all remaining chunks from the buffer
             and shutdown the writer.
@@ -564,10 +560,10 @@ class StreamWriter(threading.Thread):
         """ Start recording. """
         self.is_recording = True
         self.rec_started = time.time()
-        
+
         print(self.timestamp() + "Recording started")
         self.clear_inlet()
-        
+
         # Need to navigate the lock here
         self.lock.acquire()
         self.write_stream_header()
@@ -576,7 +572,7 @@ class StreamWriter(threading.Thread):
         # Main recording loop
         while self.is_recording:
             # Pull and write a chunk of samples
-            if (time.time()-self.last_pull>self.pull_interval 
+            if (time.time()-self.last_pull>self.pull_interval
                                        and self.is_recording):
                 self.last_pull = time.time()
                 chunk,t = self.inlet.pull_chunk(timeout=0.0)
@@ -595,9 +591,9 @@ class StreamWriter(threading.Thread):
                         self.write_samples_numeric(chunks,times)
                     self.lock.release()
                 else:
-                    print(self.timestamp() + "No samples found") 
+                    print(self.timestamp() + "No samples found")
             # Write clock OFS
-            if (time.time()-self.last_ofs>self.ofs_interval 
+            if (time.time()-self.last_ofs>self.ofs_interval
                                      and self.is_recording):
                 print(self.timestamp() + "Writing clock offset")
                 self.last_ofs = time.time()
@@ -605,7 +601,7 @@ class StreamWriter(threading.Thread):
                 self.write_clock_offset()
                 self.lock.release()
             # Write a boundary block
-            if (time.time()-self.last_uuid>self.uuid_interval 
+            if (time.time()-self.last_uuid>self.uuid_interval
                                        and self.is_recording):
                 print(self.timestamp() + "Writing UUID")
                 self.last_uuid = time.time()
@@ -624,8 +620,8 @@ class StreamRecorder():
     """ Object for writing multiple streams into a single file. """
 
     def __init__(self,filename,streams):
-        """ Initializes the StreamRecorder-object for writing mutliple LSL 
-            streams into a file. 
+        """ Initializes the StreamRecorder-object for writing mutliple LSL
+            streams into a file.
 
         Args:
             filename: <str> name of the output file
@@ -633,7 +629,7 @@ class StreamRecorder():
         """
         self.f = open(filename,"wb+")
         self.lock = threading.Lock()
-        self.writers = dict()        
+        self.writers = dict()
         # Make a dict for the streams
         for n,s in enumerate(streams):
             self.writers.update({n:StreamWriter(self.f,self.lock,s,n)})
@@ -642,7 +638,7 @@ class StreamRecorder():
         self.all_ids = self.writers.keys()
 
     def add_stream(self,stream,running=True):
-        """ Add a new stream to the recording. 
+        """ Add a new stream to the recording.
 
         Args:
             stream: <lsl_stream> pointer to the new stream
@@ -664,7 +660,7 @@ class StreamRecorder():
         """
         self.writers[stream_id].stop()
         del self.writers[stream_id]
-        
+
     def end_recording(self):
         """ Kill all writers and close the file. """
         # Sends stop signal to all writers
@@ -674,7 +670,7 @@ class StreamRecorder():
         writers_alive = [True]*len(self.writers)
         while any(writers_alive):
             for n,sw in enumerate(self.writers):
-                writers_alive[n]=self.writers[sw].is_alive()        
+                writers_alive[n]=self.writers[sw].is_alive()
         for sw in self.writers:
             self.writers[sw].join()
         self.f.close()
@@ -685,8 +681,8 @@ class StreamRecorder():
 
     def write_chunk_length(self,content_length):
         """ Calculates how many bytes are needed to encode content_length
-            then writes both the size_in_bytes and content length to 
-            the file. 
+            then writes both the size_in_bytes and content length to
+            the file.
 
         Args:
             content_length: <int> lenght of the chunk content
@@ -701,10 +697,10 @@ class StreamRecorder():
         else:
             self.f.write(struct.pack('B',8))
             self.f.write(struct.pack('Q',content_length))
-    
+
     def write_tag(self,tag):
         """ Writes a specified tag to file.
-        
+
         Args:
             tag: <int> chunk id tag
         """
@@ -725,4 +721,4 @@ class StreamRecorder():
         self.write_magic()
         self.write_file_header()
         for sw in self.writers:
-            self.writers[sw].start() 
+            self.writers[sw].start()
